@@ -16,7 +16,7 @@
 
 crashmsg(_A,_B,C) ->
 	{ok, F} = file:open("error.log", [append]),
-	io:put_chars(F, io_lib:format("~s\n\n", [C])),
+	io:put_chars(F, io_lib:format("~ts\n\n", [C])),
 	file:close(F),
 	template([{h1, [], "INTERNAL ERROR GODDAMMIT"}, "Error have occured. Please notify ", {a, [{href, "mailto:voker57@gmail.com"}], "voker57@gmail.com"}, " about it if you want it fixed."]).
 
@@ -119,13 +119,13 @@ out(A) ->
 		["images", Dir, "thumb", Name] ->
 			case get_thumb("images", Dir, Name) of
 				{ok, Mime} -> 
-			[{header, {"X-Accel-Redirect", io_lib:format("/static/images/~s/thumb/~s", [ltb(Dir), ltb(Name)])}}, {header, {"Content-Type", Mime}}];
+			[{header, {"X-Accel-Redirect", io_lib:format("/static/images/~ts/thumb/~ts", [ltb(Dir), ltb(Name)])}}, {header, {"Content-Type", Mime}}];
 				{error, _Reason} -> {status, 404}
 			end;
 		["images", Dir, Name] ->
 			case get_file("images", Dir, Name) of
 				{ok, Mime, _} ->
-			[{header, {"X-Accel-Redirect", io_lib:format("/static/images/~s/~s", [ltb(Dir), ltb(Name)])}},
+			[{header, {"X-Accel-Redirect", io_lib:format("/static/images/~ts/~ts", [ltb(Dir), ltb(Name)])}},
 			{header, {"Content-Type", Mime}}];
 				{error, Reason} -> {status, 404}
 			end;
@@ -134,15 +134,15 @@ out(A) ->
 		["files", Dir, Name] ->
 			case get_file("files", Dir, Name) of
 				{ok, Mime, _} -> 
-			[{header, {"X-Accel-Redirect", io_lib:format("/static/files/~s/~s", [ltb(Dir), Name])}},
+			[{header, {"X-Accel-Redirect", io_lib:format("/static/files/~ts/~ts", [ltb(Dir), ltb(Name)])}},
 			{header, {"Content-Type", Mime}}];
 				{error, _Reason} -> {status, 404}
 			end;
-		["texts", Name] -> {header, {"X-Accel-Redirect", io_lib:format("/static/texts/~s", [ltb(Name)])}};
+		["texts", Name] -> {header, {"X-Accel-Redirect", io_lib:format("/static/texts/~ts", [ltb(Name)])}};
 		["texts", Name, LanguagePristine] ->
 			Language = capitalize(LanguagePristine),
 			case lists:member(Language, get_paste_languages()) of
-				false -> [{status, 404}, template(io_lib:format("No such language: ~s!", [ltb(Language)]))];
+				false -> [{status, 404}, template(io_lib:format("No such language: ~ts!", [ltb(Language)]))];
 				_ -> 
 					Filename = filename:join([config(store_dir), "texts", Name]),
 					case filelib:is_file(Filename) of
@@ -170,8 +170,8 @@ out(A) ->
 			Token = genkey(83),
 			tr(fun() -> mnesia:write(#token{id=Token, timestamp=get_unix_timestamp(), status={nothing}}) end),
 			case lists:keyfind("format", 1, yaws_api:parse_query(A)) of
-				{"format", "js"} -> {ehtml, io_lib:format("uploader.callback(\"~s\");",[Token])};
-				_ -> {ehtml, io_lib:format("~s",[Token])}
+				{"format", "js"} -> {ehtml, io_lib:format("uploader.callback(\"~ts\");",[Token])};
+				_ -> {ehtml, io_lib:format("~ts",[Token])}
 			end;
 		["gettoken", Token] ->
 			case get_file_by_token_id(Token) of
@@ -197,9 +197,9 @@ urlencode(Wtf) -> http_uri:encode(ltb(Wtf)).
 urldecode(Wtf) -> utl(http_uri:decode(Wtf)).
 
 json_callback_response({Class, Dir, Name}, Host) ->
-	Url = io_lib:format("http://~s/~s/~s/~s", [ltb(Host), ltb(Class), ltb(Dir), ltb(Name)]),
-	Thumb = io_lib:format("http://~s/~s/~s/thumb/~s", [ltb(Host), ltb(Class), ltb(Dir), ltb(Name)]),
-	Preview = io_lib:format("http://~s/~s/~s/~s/preview", [ltb(Host), ltb(Class), ltb(Dir), ltb(Name)]),
+	Url = io_lib:format("http://~ts/~ts/~ts/~ts", [ltb(Host), ltb(Class), ltb(Dir), ltb(Name)]),
+	Thumb = io_lib:format("http://~ts/~ts/~ts/thumb/~ts", [ltb(Host), ltb(Class), ltb(Dir), ltb(Name)]),
+	Preview = io_lib:format("http://~ts/~ts/~ts/~ts/preview", [ltb(Host), ltb(Class), ltb(Dir), ltb(Name)]),
 	Path = tuple_to_path({Class, Dir, Name}),
 	{ok, FInfo} = file:read_file_info(Path),
 	Size = FInfo#file_info.size,
@@ -303,7 +303,7 @@ handle_paste(Data, LanguagePristine) ->
 		Filename -> {ok, Filename}
 	catch
 		throw: {badlang, Lang} ->
-			{error, template(io_lib:format("Bad language name: ~s", [Lang]))}
+			{error, template(io_lib:format("Bad language name: ~ts", [Lang]))}
 	end.
 
 handle_upload(Fname, Fpath) ->
@@ -324,7 +324,7 @@ handle_upload(Fname, Fpath) ->
 
 		DirName = gen_suitable_key(config(key_size), fun(K) -> filelib:is_file(filename:join([config(store_dir),"files",K, FnameCleaned])) end),
 		DirPath = filename:join([config(store_dir),"files",DirName, FnameCleaned]),
-		io:format("File: ~p ~s~n", [DirPath, ltb(DirPath)]),
+		io:format("File: ~p ~ts~n", [DirPath, ltb(DirPath)]),
 			filelib:ensure_dir(DirPath),
 			file:copy(Fpath, DirPath),
 			file:delete(Fpath),
@@ -396,7 +396,8 @@ handle_image_upload(Fname, Fpath) ->
 		DirName = gen_suitable_key(config(key_size), fun(K) -> filelib:is_file(filename:join([config(store_dir),"images",K, FnameCleaned])) end),
 		DirPath = filename:join([config(store_dir),"images",DirName, FnameCleaned]),
 		filelib:ensure_dir(DirPath),
-			file:rename(Fpath, DirPath),
+			file:copy(Fpath, DirPath),
+			file:delete(Fpath),
 			get_file("images", DirName, FnameCleaned),
 			{ok, DirName, FnameCleaned}
 	of
@@ -434,7 +435,7 @@ template(Inside) -> {ehtml, {html, [], [{head, [], [
 		[
 			Inside,
 			{hr},
-			{p, [], [{a, [{href, "/"}], "dump.bitcheese.net"} ,io_lib:format(" - limits: file ~s, image ~s - dont hax kthx. ", [toMaxUnit(config(max_file_size)),toMaxUnit(config(max_image_size))]), {a, [{href, "http://bitcheese.net/wiki/dump"}], "Service description and donation information"}, " | ", {a, [{href, "http://bitcheese.net/wiki/dump/script"}], "Shell script"}, " | ", {a, [{href, "http://dump.bitcheese.net/files/abukaju/Bitcheese_Dump.apk"}], "Android app"}]},
+			{p, [], [{a, [{href, "/"}], "dump.bitcheese.net"} ,io_lib:format(" - limits: file ~ts, image ~ts - dont hax kthx. ", [toMaxUnit(config(max_file_size)),toMaxUnit(config(max_image_size))]), {a, [{href, "http://bitcheese.net/wiki/dump"}], "Service description and donation information"}, " | ", {a, [{href, "http://bitcheese.net/wiki/dump/script"}], "Shell script"}, " | ", {a, [{href, "http://dump.bitcheese.net/files/abukaju/Bitcheese_Dump.apk"}], "Android app"}]},
 			"Newsflash: ", newsflash()
 		]
 	}
@@ -533,10 +534,10 @@ get_thumb(Class, Dir, Name) ->
 				lists:flatten(io_lib:format("~Bx~B", [config(thumb_width), config(thumb_height)])),
 					"-resize",
 					lists:flatten(io_lib:format("~Bx~B", [config(thumb_width), config(thumb_height)])),
-					ltb(OrigFpath),
+					OrigFpath,
 					"+profile",
 					"\"*\"",
-					ltb(Fpath)]
+					Fpath]
 				),
 				{ok, Mime};
 		{error, Reason} -> {error, Reason}
@@ -589,13 +590,13 @@ get_file(Class, Dir, Name) ->
 	end.
 
 file_preview(Dir, Name) ->
-	FilePath = io_lib:format("/files/~s/~s", [ltb(Dir), ltb(Name)]),
+	FilePath = io_lib:format("/files/~ts/~ts", [ltb(Dir), ltb(Name)]),
 	Content = case get_file_info("files", Dir, Name) of
 		false -> "";
-		Info -> io_lib:format(", ~s, ~s",[Info#file.mime, toMaxUnit(Info#file.size)])
+		Info -> io_lib:format(", ~ts, ~ts",[Info#file.mime, toMaxUnit(Info#file.size)])
 	end,
 	template(
-	[{a, [{href, FilePath}], Name}, Content]
+	[{a, [{href, FilePath}], ltb(Name)}, Content]
 	).
 
 image_preview(Dir, Name, Host) ->
@@ -628,12 +629,12 @@ image_preview(Dir, Name, Host) ->
 				[
 					Input("Direct link: ", ImgPath), {br},
 					Input("Thumbnail: ", ThumbPath), {br},
-					Input("BBCODE: ", io_lib:format("[url=~s][img]~s[/img][/url]", [ImgPath, ThumbPath])), {br},
-					Input("BBCODE (w/o preview): ", io_lib:format("[img]~s[/img]", [ImgPath])), {br},
-					Input("HTML: ", xmerl_lib:export_text(io_lib:format("<a href='~s'><img src='~s' alt='An Image' /></a>", [ImgPath, ThumbPath]))), {br},
-					Input("HTML (w/o preview): ", xmerl_lib:export_text(io_lib:format("<img src='~s' alt='An Image' />", [ImgPath]))), {br},
-					Input("Textile: ",io_lib:format("!~s!:~s", [ThumbPath, ImgPath])), {br},
-					Input("Textile (w/o preview): ",io_lib:format("!~s!", [ImgPath]))
+					Input("BBCODE: ", io_lib:format("[url=~ts][img]~ts[/img][/url]", [ImgPath, ThumbPath])), {br},
+					Input("BBCODE (w/o preview): ", io_lib:format("[img]~ts[/img]", [ImgPath])), {br},
+					Input("HTML: ", xmerl_lib:export_text(io_lib:format("<a href='~ts'><img src='~ts' alt='An Image' /></a>", [ImgPath, ThumbPath]))), {br},
+					Input("HTML (w/o preview): ", xmerl_lib:export_text(io_lib:format("<img src='~ts' alt='An Image' />", [ImgPath]))), {br},
+					Input("Textile: ",io_lib:format("!~ts!:~ts", [ThumbPath, ImgPath])), {br},
+					Input("Textile (w/o preview): ",io_lib:format("!~ts!", [ImgPath]))
 				]
 			}
 		]
